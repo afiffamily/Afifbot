@@ -42,12 +42,14 @@ async def bot_start(message: Message, state: FSMContext):
     if user:
         lang = user['language']
         full_name = user.get('full_name') or message.from_user.full_name
+        
         if lang == 'uz':
             welcome_header = f"👋 <b>Assalomu alaykum, {full_name}!</b>\n\n"
         else:
             welcome_header = f"👋 <b>Здравствуйте, {full_name}!</b>\n\n"
             
         welcome_text = TEXTS["welcome"][lang]
+        
         final_text = welcome_header + welcome_text.replace("<b>Xush kelibsiz!</b> 🌮\n\n", "").replace("<b>Добро пожаловать!</b> 🌮\n\n", "")
         
         await message.answer(
@@ -66,7 +68,7 @@ async def bot_start(message: Message, state: FSMContext):
 
 
 # ==========================================================
-# 2. ORQAGA / BOSH SAHIFA 
+# 2. ORQAGA / BOSH SAHIFA (CALLBACK)
 # ==========================================================
 @router.callback_query(F.data == "main_menu_start")
 async def back_to_main_menu(call: CallbackQuery, state: FSMContext):
@@ -96,7 +98,7 @@ async def back_to_main_menu(call: CallbackQuery, state: FSMContext):
 
 
 # ==========================================================
-# 3. REGISTRATSIYA JARAYONI 
+# 3. REGISTRATSIYA JARAYONI (Yangi userlar uchun)
 # ==========================================================
 
 @router.message(RegisterState.language)
@@ -188,15 +190,14 @@ async def register_fullname(message: Message, state: FSMContext):
     
     user_id = message.from_user.id
     username = f"@{message.from_user.username}" if message.from_user.username else None
-    
     await db.add_user(user_id, username, full_name, lang, phone)
     
     welcome_text = TEXTS["welcome"][lang]
     
     if lang == 'uz':
-        final_msg = f"🎉 <b>Tabriklaymiz, {full_name}!</b>\nRo'yxatdan o'tdingiz.\n\n{welcome_text}"
+        final_msg = f"🎉 <b>Tabriklaymiz, {full_name}!</b>\nRo'yxatdan o'tdingiz.\n\n" + welcome_text.replace("<b>Xush kelibsiz!</b> 🌮\n\n", "")
     else:
-        final_msg = f"🎉 <b>Поздравляем, {full_name}!</b>\nВы зарегистрированы.\n\n{welcome_text}"
+        final_msg = f"🎉 <b>Поздравляем, {full_name}!</b>\nВы зарегистрированы.\n\n" + welcome_text.replace("<b>Добро пожаловать!</b> 🌮\n\n", "")
     
     await message.answer(
         final_msg,

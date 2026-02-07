@@ -45,9 +45,6 @@ async def send_closed_message(call: types.CallbackQuery, lang):
     await call.message.answer(msg, reply_markup=main_user_menu(lang))
 
 
-# =========================================================
-# 1. SAVATNI KO'RSATISH 
-# =========================================================
 @router.callback_query(F.data == "menu_cart")
 @router.callback_query(F.data == "back_to_cart")
 async def show_cart(call: types.CallbackQuery, state: FSMContext):
@@ -87,10 +84,6 @@ async def clear_cart_handler(call: types.CallbackQuery):
     await call.message.answer(TEXTS["welcome"][lang], reply_markup=main_user_menu(lang))
 
 
-# =========================================================
-# 2. BUYURTMA JARAYONI
-# =========================================================
-
 @router.callback_query(F.data == "order_start")
 async def start_checkout(call: types.CallbackQuery, state: FSMContext):
     user_id = call.from_user.id
@@ -106,7 +99,6 @@ async def start_checkout(call: types.CallbackQuery, state: FSMContext):
         real_name = call.from_user.full_name
 
     await state.update_data(full_name=real_name)
-    
     await state.update_data(delivery="dlv_delivery")
 
     saved_addr = await db.get_user_last_address(user_id)
@@ -157,9 +149,6 @@ async def use_new_address(call: types.CallbackQuery, state: FSMContext):
     await ask_location(call, state, lang)
 
 
-# =========================================================================
-# Step 3: LOKATSIYA QABUL QILISH VA MANZILNI ANIQLASH 
-# =========================================================================
 @router.message(CheckoutState.location, F.location)
 async def get_location(message: types.Message, state: FSMContext):
     user_id = message.from_user.id

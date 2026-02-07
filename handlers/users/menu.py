@@ -11,34 +11,47 @@ from keyboards.inline.buttons import main_user_menu
 
 router = Router()
 
+# =========================================================
+# YORDAMCHI FUNKSIYALAR (LOGIKA)
+# =========================================================
 def is_working_hours(user_id):
+    """Foydalanuvchi ish vaqtida ekanligini tekshiradi."""
+    # Adminlar uchun har doim ochiq
     if str(user_id) in ADMINS or user_id in [int(x) for x in ADMINS]:
         return True
 
+    # Toshkent vaqti
     tz = pytz.timezone('Asia/Tashkent')
     now = datetime.now(tz)
-    hour = now.hour 
-    if 9 <= hour < 21:
+    
+    # Soat 09:00 dan 21:00 gacha (21:00 kirmaydi)
+    if 9 <= now.hour < 21:
         return True
     return False
 
 async def send_closed_message(call: CallbackQuery, lang):
-    msg = (
+    """Do'kon yopiq bo'lsa xabar yuboradi."""
+    msg_uz = (
         "😴 <b>Biz hozir dam olyapmiz.</b>\n\n"
         "⏰ <b>Ish vaqti:</b> 09:00 — 21:00\n"
         "☀️ <i>Ertalab soat 09:00 da yana xizmatingizdamiz!</i>"
-    ) if lang == 'uz' else (
+    )
+    msg_ru = (
         "😴 <b>Мы сейчас отдыхаем.</b>\n\n"
         "⏰ <b>Режим работы:</b> 09:00 — 21:00\n"
         "☀️ <i>Ждем вас завтра с 09:00 утра!</i>"
     )
-    await call.answer(show_alert=True, text="😴 Zzz... 09:00 dan 21:00 gacha ishlaymiz!")
+    
+    text = msg_uz if lang == 'uz' else msg_ru
+    alert_text = "😴 Zzz... 09:00 dan 21:00 gacha ishlaymiz!"
+    
+    await call.answer(alert_text, show_alert=True)
     await call.message.delete()
-    await call.message.answer(msg, reply_markup=main_user_menu(lang))
+    await call.message.answer(text, reply_markup=main_user_menu(lang))
 
 
 # =========================================================
-# YORDAMCHI: KLAVIATURA YASOVCHI FUNKSIYALAR
+# KLAVIATURA YASOVCHILAR
 # =========================================================
 def products_markup(lang, products):
     kb = InlineKeyboardBuilder()
@@ -47,6 +60,7 @@ def products_markup(lang, products):
         name = prod['name_uz'] if lang == 'uz' else prod['name_ru']
         kb.button(text=name, callback_data=f"product:{prod['id']}")
     
+    # Orqaga -> Bosh menyuga (Start dagi salomlashishga boradi)
     kb.button(text=TEXTS["back"][lang], callback_data="main_menu_start")
     
     kb.adjust(2)
@@ -55,13 +69,16 @@ def products_markup(lang, products):
 def product_detail_markup(lang, prod_id, quantity=1):
     kb = InlineKeyboardBuilder()
     
+    # 1-qator: - 1 +
     kb.button(text="➖", callback_data=f"count:minus:{prod_id}:{quantity}")
     kb.button(text=f"{quantity} dona", callback_data="ignore")
     kb.button(text="➕", callback_data=f"count:plus:{prod_id}:{quantity}")
     
+    # 2-qator: Savatga qo'shish
     add_text = TEXTS["btn_add_cart"][lang]
     kb.button(text=add_text, callback_data=f"cart:add:{prod_id}:{quantity}")
     
+    # 3-qator: Orqaga -> Mahsulotlar ro'yxatiga
     kb.button(text=TEXTS["back"][lang], callback_data="back_to_products")
     
     kb.adjust(3, 1, 1)
@@ -69,13 +86,14 @@ def product_detail_markup(lang, prod_id, quantity=1):
 
 
 # =========================================================
-# 1. MENYU BOSILGANDA 
+# 1. MAHSULOTLAR RO'YXATINI KO'RSATISH
 # =========================================================
 @router.callback_query(F.data.in_({"menu_products", "menu_food", "back_to_products"}))
 async def show_all_products_handler(call: CallbackQuery):
     user_id = call.from_user.id
     lang = await db.get_user_lang(user_id)
     
+    # Ish vaqtini tekshirish
     if not is_working_hours(user_id):
         await send_closed_message(call, lang)
         return
@@ -86,8 +104,8 @@ async def show_all_products_handler(call: CallbackQuery):
         await call.answer(TEXTS["menu_empty"][lang], show_alert=True)
         return
 
+    # Eski xabarni o'chirish va yangisini yuborish
     await call.message.delete()
-    
     await call.message.answer(
         text=TEXTS["select_product"][lang],
         reply_markup=products_markup(lang, products)
@@ -95,7 +113,7 @@ async def show_all_products_handler(call: CallbackQuery):
 
 
 # =========================================================
-# 2. MAHSULOT TANLANGANDA 
+# 2. MAHSULOT TAFSILOTLARINI KO'RSATISH
 # =========================================================
 @router.callback_query(F.data.startswith("product:"))
 async def show_product_detail(call: CallbackQuery):
@@ -105,10 +123,11 @@ async def show_product_detail(call: CallbackQuery):
     if not is_working_hours(user_id):
         await send_closed_message(call, lang)
         return
+
     try:
         product_id = int(call.data.split(":")[1])
-    except:
-        await call.answer("Xatolik", show_alert=True)
+    except (ValueError, IndexError):
+        await call.answer("Xatolik: ID topilmadi", show_alert=True)
         return
 
     product = await db.get_product_by_id(product_id)
@@ -117,6 +136,7 @@ async def show_product_detail(call: CallbackQuery):
         await call.answer("Mahsulot topilmadi", show_alert=True)
         return
 
+    # Ma'lumotlarni tayyorlash
     name = product['name_uz'] if lang == 'uz' else product['name_ru']
     desc = product['desc_uz'] if lang == 'uz' else product['desc_ru']
     price = "{:,.0f}".format(product['price']).replace(",", " ")
@@ -129,29 +149,36 @@ async def show_product_detail(call: CallbackQuery):
     )
 
     await call.message.delete()
+    
+    markup = product_detail_markup(lang, product_id, quantity=1)
+
     if product.get('photo_id'):
         await call.message.answer_photo(
             photo=product['photo_id'],
             caption=caption,
-            reply_markup=product_detail_markup(lang, product_id, quantity=1)
+            reply_markup=markup
         )
     else:
         await call.message.answer(
             text=caption,
-            reply_markup=product_detail_markup(lang, product_id, quantity=1)
+            reply_markup=markup
         )
 
 
 # =========================================================
-# 3. SONINI O'ZGARTIRISH (- 1 +)
+# 3. MIQDORNI O'ZGARTIRISH (- / +)
 # =========================================================
 @router.callback_query(F.data.startswith("count:"))
 async def change_quantity(call: CallbackQuery):
-    data = call.data.split(":")
-    action = data[1]
-    prod_id = int(data[2])
-    qty = int(data[3])
-    
+    try:
+        # count:minus:id:qty
+        parts = call.data.split(":")
+        action = parts[1]
+        prod_id = int(parts[2])
+        qty = int(parts[3])
+    except (ValueError, IndexError):
+        return
+
     user_id = call.from_user.id
     lang = await db.get_user_lang(user_id)
 
@@ -164,11 +191,13 @@ async def change_quantity(call: CallbackQuery):
             await call.answer("Minimum 1")
             return
 
+    # Faqat tugmani yangilash (xabar o'chib ketmasligi uchun)
     try:
         await call.message.edit_reply_markup(
             reply_markup=product_detail_markup(lang, prod_id, qty)
         )
-    except:
+    except Exception:
+        # Agar kontent o'zgarmasa, Telegram xato berishi mumkin, shuning uchun pass
         pass
 
 
@@ -183,20 +212,26 @@ async def add_to_cart_handler(call: CallbackQuery):
     if not is_working_hours(user_id):
         await send_closed_message(call, lang)
         return
-    data = call.data.split(":")
-    prod_id = int(data[2])
-    qty = int(data[3])
+
+    try:
+        data = call.data.split(":")
+        prod_id = int(data[2])
+        qty = int(data[3])
+    except (ValueError, IndexError):
+        await call.answer("Xatolik: Ma'lumot noto'g'ri", show_alert=True)
+        return
     
     product = await db.get_product_by_id(prod_id)
     if not product:
-        await call.answer("Xatolik", show_alert=True)
+        await call.answer("Xatolik: Mahsulot bazada yo'q", show_alert=True)
         return
     
     price = product['price'] 
     name = product['name_uz'] if lang == 'uz' else product['name_ru']
     
+    # Bazaga qo'shish
     await db.add_to_cart(user_id, name, qty, price)
     
+    # Tasdiqlash va menyuga qaytish
     await call.answer(TEXTS["added_to_cart"][lang], show_alert=True)
-    
     await show_all_products_handler(call)

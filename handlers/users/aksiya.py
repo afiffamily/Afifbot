@@ -151,11 +151,22 @@ async def manage_aksiya_actions(call: CallbackQuery):
                 price=price  
             )
             await call.answer(TEXTS["added_to_cart"][lang], show_alert=True)
+            
+            full_name = user.get('full_name') or call.from_user.full_name
+            if lang == 'uz':
+                welcome_header = f"👋 <b>Assalomu alaykum, {full_name}!</b>\n\n"
+            else:
+                welcome_header = f"👋 <b>Здравствуйте, {full_name}!</b>\n\n"
+                
+            welcome_text = TEXTS["welcome"][lang]
+            final_text = welcome_header + welcome_text.replace("<b>Xush kelibsiz!</b> 🌮\n\n", "").replace("<b>Добро пожаловать!</b> 🌮\n\n", "")
+            
             await call.message.delete()
             await call.message.answer(
-                text=TEXTS["welcome"][lang],
+                text=final_text,
                 reply_markup=main_user_menu(lang)
             )
+            # --- END ---
         else:
             await call.answer("Xatolik: Aksiya topilmadi", show_alert=True)
 
@@ -169,5 +180,15 @@ async def back_to_main_menu_handler(call: CallbackQuery):
     user = await db.get_user_info(user_id)
     lang = user['language'] if user else 'uz'
     
+    full_name = user.get('full_name') or call.from_user.full_name
+    
+    if lang == 'uz':
+        welcome_header = f"👋 <b>Assalomu alaykum, {full_name}!</b>\n\n"
+    else:
+        welcome_header = f"👋 <b>Здравствуйте, {full_name}!</b>\n\n"
+        
+    welcome_text = TEXTS["welcome"][lang]
+    final_text = welcome_header + welcome_text.replace("<b>Xush kelibsiz!</b> 🌮\n\n", "").replace("<b>Добро пожаловать!</b> 🌮\n\n", "")
+    
     await call.message.delete()
-    await call.message.answer(TEXTS["welcome"][lang], reply_markup=main_user_menu(lang))
+    await call.message.answer(text=final_text, reply_markup=main_user_menu(lang))

@@ -3,3 +3,4 @@ asyncpg
 python-dotenv
 redis
 geopy
+pytz

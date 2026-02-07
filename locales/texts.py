@@ -119,8 +119,8 @@ TEXTS = {
     "btn_location":  {"uz": "✈️ Telegram", "ru": "✈️ Телеграм"},
 
     "promo_empty": {
-        "uz": "<b>🎁 Hozircha aksiyalar tugadi.</b>\n\nLekin tez orada yangilari qo'shiladi, bizni kuzatib boring!",
-        "ru": "<b>🎁 Акции пока закончились.</b>\n\nНо скоро появятся новые, следите за нами!"
+        "uz": "🎁 Hozircha aksiyalar tugadi.\nLekin tez orada yangilari qo'shiladi, bizni kuzatib boring!",
+        "ru": "🎁 Акции пока закончились.\nНо скоро появятся новые, следите за нами!"
     },
     
     # =========================================================
@@ -142,7 +142,6 @@ TEXTS = {
     "currency": {"uz": "so'm", "ru": "сум"},
     "btn_add_to_cart": {"uz": "📥 Savatga solish", "ru": "📥 В корзину"},
     "added_to_cart": {"uz": "Mahsulot savatga uchdi! 🛒", "ru": "Продукт полетел в корзину! 🛒"},
-    
     "btn_add_cart": {"uz": "📥 Savatga solish", "ru": "📥 В корзину"},
 
     # =========================================================
@@ -171,7 +170,6 @@ TEXTS = {
         "ru": "🚖 <b>Выберите тип доставки:</b>"
     },
     "btn_delivery": {"uz": "🚖 Yetkazib berish", "ru": "🚖 Доставка"},
-    "btn_pickup": {"uz": "🏃 Olib ketish", "ru": "🏃 Самовывоз"},
 
     "ask_location": {
         "uz": "📍 <b>Lokatsiyangizni yuboring:</b>\n<i>Pastdagi tugmani bosing</i> 👇",
@@ -199,10 +197,9 @@ TEXTS = {
     },
 
     "ask_payment": {
-        "uz": "💳 <b>To'lov turini tanlang:</b>\n\n<i>To'lov Admin bilan kelishilgan holda amalga oshiriladi.</i>",
-        "ru": "💳 <b>Выберите тип оплаты:</b>\n\n<i>Оплата производится по согласованию с Админом.</i>"
+        "uz": "💳 <b>To'lov turi:</b>\n\n<i>Faqat karta orqali (Click/Payme) qabul qilinadi.</i>",
+        "ru": "💳 <b>Тип оплаты:</b>\n\n<i>Принимается только карта (Click/Payme).</i>"
     },
-    "btn_cash": {"uz": "💵 Naqd pul", "ru": "💵 Наличные"},
     "btn_card": {"uz": "💳 Karta (Click/Payme)", "ru": "💳 Карта (Click/Payme)"},
     
     "confirm_order": {
@@ -227,88 +224,3 @@ TEXTS = {
     "error_short": {"uz": "Ism juda qisqa, iltimos to'liq yozing.", "ru": "Имя слишком короткое."},
     "error_format": {"uz": "Raqam noto'g'ri formatda!", "ru": "Неверный формат номера!"}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
