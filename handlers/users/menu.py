@@ -70,7 +70,7 @@ def product_detail_markup(lang, prod_id, quantity=1):
     kb = InlineKeyboardBuilder()
     
     kb.button(text="➖", callback_data=f"count:minus:{prod_id}:{quantity}")
-    kb.button(text=f"{quantity} dona", callback_data="ignore")
+    kb.button(text=f"{quantity}", callback_data="ignore")
     kb.button(text="➕", callback_data=f"count:plus:{prod_id}:{quantity}")
     
     add_text = TEXTS["btn_add_cart"][lang]
