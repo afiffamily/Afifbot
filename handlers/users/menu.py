@@ -16,15 +16,12 @@ router = Router()
 # =========================================================
 def is_working_hours(user_id):
     """Foydalanuvchi ish vaqtida ekanligini tekshiradi."""
-    # Adminlar uchun har doim ochiq
     if str(user_id) in ADMINS or user_id in [int(x) for x in ADMINS]:
         return True
 
-    # Toshkent vaqti
     tz = pytz.timezone('Asia/Tashkent')
     now = datetime.now(tz)
     
-    # Soat 09:00 dan 21:00 gacha (21:00 kirmaydi)
     if 9 <= now.hour < 21:
         return True
     return False
@@ -53,32 +50,32 @@ async def send_closed_message(call: CallbackQuery, lang):
 # =========================================================
 # KLAVIATURA YASOVCHILAR
 # =========================================================
-def products_markup(lang, products):
+def products_markup(lang, products, show_cart_btn=False):
     kb = InlineKeyboardBuilder()
     
     for prod in products:
         name = prod['name_uz'] if lang == 'uz' else prod['name_ru']
         kb.button(text=name, callback_data=f"product:{prod['id']}")
     
-    # Orqaga -> Bosh menyuga (Start dagi salomlashishga boradi)
-    kb.button(text=TEXTS["back"][lang], callback_data="main_menu_start")
-    
     kb.adjust(2)
+
+    if show_cart_btn:
+        kb.row(InlineKeyboardButton(text=TEXTS["btn_cart"][lang], callback_data="menu_cart"))
+
+    kb.row(InlineKeyboardButton(text=TEXTS["back"][lang], callback_data="main_menu_start"))
+    
     return kb.as_markup()
 
 def product_detail_markup(lang, prod_id, quantity=1):
     kb = InlineKeyboardBuilder()
     
-    # 1-qator: - 1 +
     kb.button(text="➖", callback_data=f"count:minus:{prod_id}:{quantity}")
     kb.button(text=f"{quantity} dona", callback_data="ignore")
     kb.button(text="➕", callback_data=f"count:plus:{prod_id}:{quantity}")
     
-    # 2-qator: Savatga qo'shish
     add_text = TEXTS["btn_add_cart"][lang]
     kb.button(text=add_text, callback_data=f"cart:add:{prod_id}:{quantity}")
     
-    # 3-qator: Orqaga -> Mahsulotlar ro'yxatiga
     kb.button(text=TEXTS["back"][lang], callback_data="back_to_products")
     
     kb.adjust(3, 1, 1)
@@ -93,7 +90,6 @@ async def show_all_products_handler(call: CallbackQuery):
     user_id = call.from_user.id
     lang = await db.get_user_lang(user_id)
     
-    # Ish vaqtini tekshirish
     if not is_working_hours(user_id):
         await send_closed_message(call, lang)
         return
@@ -104,11 +100,14 @@ async def show_all_products_handler(call: CallbackQuery):
         await call.answer(TEXTS["menu_empty"][lang], show_alert=True)
         return
 
-    # Eski xabarni o'chirish va yangisini yuborish
+    cart_items = await db.get_user_cart(user_id)
+    has_items = True if cart_items else False
+
     await call.message.delete()
+    
     await call.message.answer(
         text=TEXTS["select_product"][lang],
-        reply_markup=products_markup(lang, products)
+        reply_markup=products_markup(lang, products, show_cart_btn=has_items)
     )
 
 
@@ -136,7 +135,6 @@ async def show_product_detail(call: CallbackQuery):
         await call.answer("Mahsulot topilmadi", show_alert=True)
         return
 
-    # Ma'lumotlarni tayyorlash
     name = product['name_uz'] if lang == 'uz' else product['name_ru']
     desc = product['desc_uz'] if lang == 'uz' else product['desc_ru']
     price = "{:,.0f}".format(product['price']).replace(",", " ")
@@ -171,7 +169,6 @@ async def show_product_detail(call: CallbackQuery):
 @router.callback_query(F.data.startswith("count:"))
 async def change_quantity(call: CallbackQuery):
     try:
-        # count:minus:id:qty
         parts = call.data.split(":")
         action = parts[1]
         prod_id = int(parts[2])
@@ -191,13 +188,11 @@ async def change_quantity(call: CallbackQuery):
             await call.answer("Minimum 1")
             return
 
-    # Faqat tugmani yangilash (xabar o'chib ketmasligi uchun)
     try:
         await call.message.edit_reply_markup(
             reply_markup=product_detail_markup(lang, prod_id, qty)
         )
     except Exception:
-        # Agar kontent o'zgarmasa, Telegram xato berishi mumkin, shuning uchun pass
         pass
 
 
@@ -229,9 +224,8 @@ async def add_to_cart_handler(call: CallbackQuery):
     price = product['price'] 
     name = product['name_uz'] if lang == 'uz' else product['name_ru']
     
-    # Bazaga qo'shish
     await db.add_to_cart(user_id, name, qty, price)
     
-    # Tasdiqlash va menyuga qaytish
     await call.answer(TEXTS["added_to_cart"][lang], show_alert=True)
+    
     await show_all_products_handler(call)
