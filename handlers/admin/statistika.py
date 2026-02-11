@@ -1,6 +1,8 @@
 import csv
 import io
 from datetime import datetime
+import pytz  
+
 from aiogram import Router, F, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, BufferedInputFile
 from loader import db
@@ -12,11 +14,15 @@ router = Router()
 # =========================================================
 @router.message(F.text.in_({"📊 Kengaytirilgan Statistika", "📊 Kunlik hisobot"}))
 async def show_dashboard(message: types.Message):
+    tz = pytz.timezone('Asia/Tashkent')
+    date_now = datetime.now(tz).strftime("%d.%m.%Y %H:%M")
+
     stats = await db.get_full_stats()
     admin_count = await db.count_admins()
-    date_now = datetime.now().strftime("%d.%m.%Y %H:%M")
+    
     sales = stats.get('sales', 0) or 0
     sales_fmt = "{:,.0f}".format(sales).replace(",", " ")
+    
     text = (
         f"📅 <b>HISOBOT VAQTI:</b> {date_now}\n"
         "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n"
@@ -56,14 +62,20 @@ async def refresh_statistics(call: types.CallbackQuery):
 @router.callback_query(F.data == "download_excel")
 async def download_excel_real(call: types.CallbackQuery):
     await call.answer("⏳ Fayl tayyorlanmoqda...", show_alert=False)
+    
+    tz = pytz.timezone('Asia/Tashkent')
+    now = datetime.now(tz)
+    
     users = await db.get_all_users_detailed()
     
     if not users:
         await call.message.answer("📂 Bazada mijozlar yo'q.")
         return
+    
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(["ID", "Ism Familiya", "Username", "Telefon", "Til", "Ro'yxatdan o'tgan sana"])
+    
     for user in users:
         reg_date = user['reg_date'].strftime("%Y-%m-%d %H:%M") if user['reg_date'] else "Noma'lum"
         phone = user['phone_number'] if user['phone_number'] else "Kiritilmagan"
@@ -77,13 +89,13 @@ async def download_excel_real(call: types.CallbackQuery):
             user['language'],
             reg_date
         ])
+    
     output.seek(0)
     bytes_io = io.BytesIO(output.getvalue().encode('utf-8-sig'))
-    
-    filename = f"Mijozlar_Bazasi_{datetime.now().strftime('%Y%m%d')}.csv"
+    filename = f"Mijozlar_Bazasi_{now.strftime('%Y%m%d')}.csv"
     document = BufferedInputFile(bytes_io.read(), filename=filename)
     
     await call.message.answer_document(
         document=document,
-        caption=f"📂 <b>To'liq mijozlar bazasi</b>\n📅 Sana: {datetime.now().strftime('%d.%m.%Y')}"
+        caption=f"📂 <b>To'liq mijozlar bazasi</b>\n📅 Sana: {now.strftime('%d.%m.%Y %H:%M')}"
     )
