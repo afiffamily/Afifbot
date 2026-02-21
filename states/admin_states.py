@@ -28,6 +28,7 @@ class ProductState(StatesGroup):
     name_ru = State()
     desc_uz = State()
     desc_ru = State()
+    weights = State()
     price = State()  
     confirm = State()
 

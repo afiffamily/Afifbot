@@ -17,7 +17,6 @@ class Database(DBCommands):
         except Exception as e:
             print(f"❌ Bazaga ulanishda xatolik: {e}")
 
-    # Yordamchi funksiya (Queries ichida ishlatiladi)
     async def execute(self, sql, *args):
         if not self.pool: return
         async with self.pool.acquire() as connection:
@@ -68,8 +67,7 @@ class Database(DBCommands):
         await self.execute("ALTER TABLE products ADD COLUMN IF NOT EXISTS name_ru VARCHAR(255);")
         await self.execute("ALTER TABLE products ADD COLUMN IF NOT EXISTS desc_uz TEXT;")
         await self.execute("ALTER TABLE products ADD COLUMN IF NOT EXISTS desc_ru TEXT;")
-
-        # 4. ORDERS JADVALI
+        await self.execute("ALTER TABLE products ADD COLUMN IF NOT EXISTS weights VARCHAR(255);")
         await self.execute("""
         CREATE TABLE IF NOT EXISTS orders (
             id SERIAL PRIMARY KEY,

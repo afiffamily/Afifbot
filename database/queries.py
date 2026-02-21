@@ -95,12 +95,12 @@ class DBCommands:
         async with self.pool.acquire() as connection:
             return await connection.fetch(sql, category)
 
-    async def add_product(self, category, photo, n_uz, n_ru, d_uz, d_ru, price):
+    async def add_product(self, category, photo, n_uz, n_ru, d_uz, d_ru, price, weights=None):
         sql = """
-        INSERT INTO products (category, photo_id, name_uz, name_ru, desc_uz, desc_ru, price, is_active)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE)
+        INSERT INTO products (category, photo_id, name_uz, name_ru, desc_uz, desc_ru, price, weights, is_active)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE)
         """
-        await self.execute(sql, category, photo, n_uz, n_ru, d_uz, d_ru, price)
+        await self.execute(sql, category, photo, n_uz, n_ru, d_uz, d_ru, 0, weights)
 
     async def get_all_products(self):
         async with self.pool.acquire() as connection:
@@ -112,7 +112,8 @@ class DBCommands:
             return await connection.fetchrow(sql, int(product_id))
 
     async def update_product_field(self, product_id, field, value):
-        allowed_fields = ["name_uz", "name_ru", "desc_uz", "desc_ru", "price", "photo_id", "category"]
+        # weights maydoni qo'shildi
+        allowed_fields = ["name_uz", "name_ru", "desc_uz", "desc_ru", "price", "photo_id", "category", "weights"]
         if field not in allowed_fields: return
         sql = f"UPDATE products SET {field} = $1 WHERE id = $2"
         await self.execute(sql, value, int(product_id))
