@@ -53,7 +53,6 @@ def products_markup(lang, products, has_cart_items=False):
 def product_detail_markup(lang, prod_id, product, cart_items):
     kb = InlineKeyboardBuilder()
     
-    # 1. Bazadan gramm va narxlarni ajratib olish (Format: "50=15000,100=25000")
     weights_raw = product.get('weights')
     weight_dict = {}
     
@@ -62,41 +61,35 @@ def product_detail_markup(lang, prod_id, product, cart_items):
         for item in items:
             if "=" in item:
                 w, p = item.split("=")
-                weight_dict[int(w.strip())] = int(p.strip())
+                weight_dict[w.strip()] = int(p.strip())
                 
     base_name = product['name_uz'] if lang == 'uz' else product['name_ru']
     
-    # 2. Savatdagi narsalarni ajratib olish (Qaysi mahsulotdan nechta borligini topish uchun)
     cart_dict = {}
     for item in cart_items:
         cart_dict[item['product_name']] = item['quantity']
         
-    # 3. HAR BIR GRAMM UCHUN ALOHIDA QATOR YASAYMIZ
     for w, w_price in weight_dict.items():
-        if w == 1:
-            # Agar grammi 1 deb kiritilgan bo'lsa (Dona)
+        if w == "1":
             p_name = base_name
             w_label = "Dona"
         else:
-            p_name = f"{base_name} ({w} gr)"
-            w_label = f"{w} gr"
+            p_name = f"{base_name} ({w})"
+            w_label = f"{w}"
             
         qty = cart_dict.get(p_name, 0)
         
         if qty == 0:
-            # Hali bu grammdan savatda yo'q - FAQAT QO'SHISH TUGMASI CHIQADI
             price_fmt = "{:,.0f}".format(w_price).replace(",", " ")
             btn_text = f"➕ {w_label} - {price_fmt} so'm"
             kb.row(InlineKeyboardButton(text=btn_text, callback_data=f"cart:add:{prod_id}:{w}"))
         else:
-            # Savatda bor bo'lsa - O'SHA QATORNING O'ZI "- 1 +" BO'LIB O'ZGARADI
             kb.row(
                 InlineKeyboardButton(text="➖", callback_data=f"cart:minus:{prod_id}:{w}"),
                 InlineKeyboardButton(text=f"{qty} x {w_label}", callback_data="ignore"),
                 InlineKeyboardButton(text="➕", callback_data=f"cart:add:{prod_id}:{w}")
             )
             
-    # 4. ENG PASTDA: SAVATGA O'TISH TUGMASI (JAMI SUMMA BILAN)
     total_sum = sum([item['total_price'] for item in cart_items])
     if total_sum > 0:
         total_fmt = "{:,.0f}".format(total_sum).replace(",", " ")
@@ -163,7 +156,7 @@ async def show_product_detail(call: CallbackQuery):
     caption = (
         f"🍰 <b>{name}</b>\n\n"
         f"📝 {desc}\n\n"
-        f"👇 <i>Kerakli miqdor va grammni tanlang:</i>"
+        f"👇 <i>Kerakli miqdor va o'lchovni tanlang:</i>"
     )
 
     await call.message.delete()
@@ -190,9 +183,9 @@ async def show_product_detail(call: CallbackQuery):
 @router.callback_query(F.data.startswith("cart:"))
 async def handle_cart_actions(call: CallbackQuery):
     parts = call.data.split(":")
-    action = parts[1] # "add" yoki "minus"
+    action = parts[1] 
     prod_id = int(parts[2])
-    weight = int(parts[3])
+    weight = parts[3]
     
     user_id = call.from_user.id
     lang = await db.get_user_lang(user_id)
@@ -204,22 +197,20 @@ async def handle_cart_actions(call: CallbackQuery):
         
     base_name = product['name_uz'] if lang == 'uz' else product['name_ru']
     
-    # 1. Tanlangan grammning aniq narxini topamiz
     weights_raw = product.get('weights', '')
     w_price = 0
     for item in weights_raw.split(","):
         if "=" in item:
             w, p = item.split("=")
-            if int(w.strip()) == weight:
+            if w.strip() == weight:
                 w_price = int(p.strip())
                 break
                 
-    if weight == 1:
+    if weight == "1":
         p_name = base_name
     else:
-        p_name = f"{base_name} ({weight} gr)"
+        p_name = f"{base_name} ({weight})"
         
-    # 2. Savat bilan ishlash
     cart_items = await db.get_user_cart(user_id)
     target_item = next((item for item in cart_items if item['product_name'] == p_name), None)
     
@@ -238,7 +229,6 @@ async def handle_cart_actions(call: CallbackQuery):
             else:
                 await db.delete_cart_item(target_item['id'])
                 
-    # 3. Klaviaturani jonli yangilash
     updated_cart = await db.get_user_cart(user_id)
     markup = product_detail_markup(lang, prod_id, product, updated_cart)
     
