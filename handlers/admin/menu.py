@@ -69,30 +69,23 @@ async def add_prod_desc_uz(message: types.Message, state: FSMContext):
 async def add_prod_desc_ru(message: types.Message, state: FSMContext):
     await state.update_data(desc_ru=message.text)
     
-    # DIQQAT: Shu yerda xotirani (lug'atni) bo'm-bo'sh qilib ochib olamiz
     await state.update_data(weight_prices={})
     
     await message.answer(
-        "⚖️ <b>6. Grammni kiriting:</b>\n\n"
-        "Faqat raqam yozing (Masalan: <b>50</b> yoki <b>100</b>).",
+        "⚖️ <b>6. O'lchovni kiriting (gr yoki kg):</b>\n\n"
+        "Masalan: <b>500gr</b> yoki <b>1kg</b>.",
         reply_markup=cancel_kb
     )
     await state.set_state(ProductState.weights)
 
-# SIKL BOSHLANISHI: GRAMM KIRITISH
 @router.message(ProductState.weights)
 async def add_prod_weights(message: types.Message, state: FSMContext):
-    if not message.text.isdigit():
-        await message.answer("❌ Faqat raqam (gramm) kiriting!")
-        return
-    
-    weight = int(message.text)
+    weight = message.text.strip() 
     await state.update_data(current_weight=weight)
     
-    await message.answer(f"💰 <b>{weight} gr</b> uchun narxni kiriting (so'mda):")
+    await message.answer(f"💰 <b>{weight}</b> uchun narxni kiriting (so'mda):")
     await state.set_state(ProductState.price)
 
-# SIKL DAVOMI: NARX KIRITISH
 @router.message(ProductState.price)
 async def add_prod_weight_price(message: types.Message, state: FSMContext):
     if not message.text.isdigit():
@@ -102,11 +95,9 @@ async def add_prod_weight_price(message: types.Message, state: FSMContext):
     price = int(message.text)
     data = await state.get_data()
     
-    # Xotiradan oldingi saqlanganlarni olamiz
     weight_prices = data.get('weight_prices', {})
     weight = data.get('current_weight')
     
-    # Yangi kiritilganni ro'yxatga QO'SHAMIZ (ustiga yozmaymiz!)
     weight_prices[weight] = price
     await state.update_data(weight_prices=weight_prices)
     
@@ -114,39 +105,36 @@ async def add_prod_weight_price(message: types.Message, state: FSMContext):
         [InlineKeyboardButton(text="✅ Tugatish (Keyingisi)", callback_data="finish_weights")]
     ])
     
-    # Hozirgi hamma saqlanganlarni ko'rsatamiz
     saved_text = ""
     for w, p in weight_prices.items():
-        saved_text += f"▫️ {w} gr = {p} so'm\n"
+        saved_text += f"▫️ {w} = {p} so'm\n" 
         
     await message.answer(
         f"✅ Saqlandi!\n\n"
         f"<b>Hozirgi ro'yxat:</b>\n{saved_text}\n"
-        "Yana boshqa <b>gramm</b> kiritasizmi? (Shunchaki grammni yozing 👇)\n"
-        "Yoki hamma grammni kiritib bo'lgan bo'lsangiz <b>✅ Tugatish</b> tugmasini bosing.",
+        "Yana boshqa <b>o'lchov</b> kiritasizmi? (Shunchaki yozing, masalan: 1kg 👇)\n"
+        "Yoki hamma o'lchovni kiritib bo'lgan bo'lsangiz <b>✅ Tugatish</b> tugmasini bosing.",
         reply_markup=kb
     )
-    # Siklni qaytadan Gramm so'rashga qaytaramiz
     await state.set_state(ProductState.weights)
 
-# SIKL TUGASHI: TASDIQLASH
 @router.callback_query(ProductState.weights, F.data == "finish_weights")
 async def finish_weights_and_prices(call: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     weight_prices = data.get('weight_prices', {})
     
     if not weight_prices:
-        await call.answer("⚠️ Kamida bitta gramm va narx kiritishingiz kerak!", show_alert=True)
+        await call.answer("⚠️ Kamida bitta o'lchov va narx kiritishingiz kerak!", show_alert=True)
         return
         
     wp_text = ""
     for w, p in weight_prices.items():
-        wp_text += f"▫️ {w} gr - {'{:,.0f}'.format(p).replace(',', ' ')} so'm\n"
+        wp_text += f"▫️ {w} - {'{:,.0f}'.format(p).replace(',', ' ')} so'm\n"
     
     info = (
         f"🇺🇿 <b>{data['name_uz']}</b>\n{data['desc_uz']}\n\n"
         f"🇷🇺 <b>{data['name_ru']}</b>\n{data['desc_ru']}\n\n"
-        f"⚖️💰 <b>Narxlar (Gramm bo'yicha):</b>\n{wp_text}"
+        f"⚖️💰 <b>Narxlar (O'lchov bo'yicha):</b>\n{wp_text}"
     )
     
     await call.message.delete()
@@ -162,7 +150,6 @@ async def save_new_prod(call: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     weight_prices = data.get('weight_prices', {})
     
-    # Bazaga yozish uchun maxsus format yasaymiz: "50=15000,100=25000,200=40000"
     wp_str_list = [f"{w}={p}" for w, p in weight_prices.items()]
     weights_str = ",".join(wp_str_list)
     
@@ -205,7 +192,7 @@ async def view_product(call: types.CallbackQuery):
             if "=" in item:
                 w, p = item.split("=")
                 p_fmt = "{:,.0f}".format(int(p)).replace(",", " ")
-                wp_text += f"▫️ {w} gr - {p_fmt} so'm\n"
+                wp_text += f"▫️ {w} - {p_fmt} so'm\n" 
     else:
         wp_text = "Kiritilmagan"
     
@@ -243,7 +230,7 @@ async def show_edit_prod_options(call: types.CallbackQuery):
          InlineKeyboardButton(text="🇷🇺 Tarifni (Ru)", callback_data=f"chg_desc_ru_{prod_id}")],
          
         [InlineKeyboardButton(text="📸 Rasmni", callback_data=f"chg_photo_id_{prod_id}"),
-         InlineKeyboardButton(text="⚖️💰 Grammlar/Narxlar", callback_data=f"chg_weights_{prod_id}")],
+         InlineKeyboardButton(text="⚖️💰 O'lchovlar/Narxlar", callback_data=f"chg_weights_{prod_id}")],
          
         [InlineKeyboardButton(text="🔙 Bekor qilish", callback_data=f"view_prod_{prod_id}")]
     ])
@@ -259,7 +246,7 @@ async def ask_prod_value(call: types.CallbackQuery, state: FSMContext):
     await state.update_data(edit_id=prod_id, edit_field=field)
     
     if field == "weights":
-        msg = "⚖️💰 Yangi <b>Gramm=Narx</b> qiymatlarini kiriting.\n<i>(Vergul bilan ajrating. Masalan: 50=15000, 100=25000)</i>:"
+        msg = "⚖️💰 Yangi <b>O'lchov=Narx</b> qiymatlarini kiriting.\n<i>(Vergul bilan ajrating. Masalan: 500gr=50000, 1kg=60000)</i>:"
     else:
         msg_map = {
             "name_uz": "🇺🇿 Yangi <b>Nomi (Uz)</b>:",
@@ -295,9 +282,9 @@ async def save_prod_value(message: types.Message, state: FSMContext):
             for item in raw_list:
                 if "=" in item:
                     w, p = item.split("=")
-                    clean_list.append(f"{int(w.strip())}={int(p.strip())}")
+                    clean_list.append(f"{w.strip()}={int(p.strip())}") 
         except:
-            await message.answer("❌ Xato! Misol: 50=15000, 100=25000")
+            await message.answer("❌ Xato! Misol: 500gr=50000, 1kg=60000")
             return
             
         if not clean_list:
