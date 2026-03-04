@@ -190,9 +190,15 @@ async def view_product(call: types.CallbackQuery):
         items = weights_raw.split(",")
         for item in items:
             if "=" in item:
-                w, p = item.split("=")
-                p_fmt = "{:,.0f}".format(int(p)).replace(",", " ")
-                wp_text += f"▫️ {w} - {p_fmt} so'm\n" 
+                parts = item.split("=")
+                if len(parts) >= 2:
+                    w = parts[0].strip()
+                    p_str = parts[1].strip()
+                    if p_str.isdigit():
+                        p_fmt = "{:,.0f}".format(int(p_str)).replace(",", " ")
+                        wp_text += f"▫️ {w} - {p_fmt} so'm\n" 
+                    else:
+                        wp_text += f"▫️ {w} - Noto'g'ri narx formati\n"
     else:
         wp_text = "Kiritilmagan"
     
@@ -278,17 +284,18 @@ async def save_prod_value(message: types.Message, state: FSMContext):
     elif field == "weights":
         raw_list = message.text.split(",")
         clean_list = []
-        try:
-            for item in raw_list:
-                if "=" in item:
-                    w, p = item.split("=")
-                    clean_list.append(f"{w.strip()}={int(p.strip())}") 
-        except:
-            await message.answer("❌ Xato! Misol: 500gr=50000, 1kg=60000")
-            return
-            
+        
+        for item in raw_list:
+            if "=" in item:
+                parts = item.split("=")
+                if len(parts) >= 2:
+                    w = parts[0].strip()
+                    p_str = parts[1].strip()
+                    if p_str.isdigit():
+                        clean_list.append(f"{w}={int(p_str)}") 
+                        
         if not clean_list:
-            await message.answer("❌ Xato format!")
+            await message.answer("❌ Xato format yoki narx noto'g'ri!\nMisol: 500gr=50000, 1kg=60000")
             return
             
         new_value = ",".join(clean_list)
