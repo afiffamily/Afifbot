@@ -60,8 +60,10 @@ def product_detail_markup(lang, prod_id, product, cart_items):
         items = weights_raw.split(",")
         for item in items:
             if "=" in item:
-                w, p = item.split("=")
-                weight_dict[w.strip()] = int(p.strip())
+                parts = item.split("=")
+                if len(parts) >= 2:
+                    w, p = parts[0], parts[1]
+                    weight_dict[w.strip()] = int(p.strip())
                 
     base_name = product['name_uz'] if lang == 'uz' else product['name_ru']
     
@@ -72,7 +74,7 @@ def product_detail_markup(lang, prod_id, product, cart_items):
     for w, w_price in weight_dict.items():
         if w == "1":
             p_name = base_name
-            w_label = "Dona"
+            w_label = "Dona" if lang == 'uz' else "Шт"
         else:
             p_name = f"{base_name} ({w})"
             w_label = f"{w}"
@@ -92,8 +94,7 @@ def product_detail_markup(lang, prod_id, product, cart_items):
             
     total_sum = sum([item['total_price'] for item in cart_items])
     if total_sum > 0:
-        total_fmt = "{:,.0f}".format(total_sum).replace(",", " ")
-        cart_btn_text = f"🛒 Savatga o'tish"
+        cart_btn_text = TEXTS["btn_cart"][lang] 
         kb.row(InlineKeyboardButton(text=cart_btn_text, callback_data="menu_cart"))
         
     kb.row(InlineKeyboardButton(text=TEXTS["back"][lang], callback_data="back_to_products"))
@@ -153,10 +154,15 @@ async def show_product_detail(call: CallbackQuery):
     name = product['name_uz'] if lang == 'uz' else product['name_ru']
     desc = product['desc_uz'] if lang == 'uz' else product['desc_ru']
     
+    select_text = (
+        "👇 <i>Kerakli miqdor va o'lchovni tanlang:</i>" if lang == 'uz' 
+        else "👇 <i>Выберите нужное количество и размер:</i>"
+    )
+    
     caption = (
         f"🍰 <b>{name}</b>\n\n"
         f"📝 {desc}\n\n"
-        f"👇 <i>Kerakli miqdor va o'lchovni tanlang:</i>"
+        f"{select_text}"
     )
 
     await call.message.delete()
@@ -201,9 +207,9 @@ async def handle_cart_actions(call: CallbackQuery):
     w_price = 0
     for item in weights_raw.split(","):
         if "=" in item:
-            w, p = item.split("=")
-            if w.strip() == weight:
-                w_price = int(p.strip())
+            sub_parts = item.split("=")
+            if len(sub_parts) >= 2 and sub_parts[0].strip() == weight:
+                w_price = int(sub_parts[1].strip())
                 break
                 
     if weight == "1":
