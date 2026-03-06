@@ -2,14 +2,16 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from locales.texts import TEXTS
 
 def get_contact_kb(lang):
-    ADMIN_USERNAME = "@sotuvmenejeri_afif"
+    ADMIN_USERNAME = "sotuvmenejeri_afif" 
     INSTAGRAM_LINK = "https://www.instagram.com/afif_shirinliklari?igsh=Z2V4ZjFmMmh2djBh" 
+    CHANNEL_LINK = "https://t.me/afifbuuu"
+    channel_btn_text = "📢 Kanalimiz" if lang == "uz" else "📢 Наш канал"
 
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton(text=TEXTS["btn_call"][lang], callback_data="contact_action_phone"),
-                InlineKeyboardButton(text=TEXTS["btn_location"][lang], callback_data="contact_action_location"),
+                InlineKeyboardButton(text=channel_btn_text, url=CHANNEL_LINK),
             ],
             [
                 InlineKeyboardButton(text=TEXTS["btn_telegram"][lang], url=f"https://t.me/{ADMIN_USERNAME}"),
