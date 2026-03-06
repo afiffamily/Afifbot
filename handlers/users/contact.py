@@ -34,19 +34,7 @@ async def send_phone_contact(call: CallbackQuery):
     )
     await call.answer()
 
-# =========================================================
-# 📍 LOKATSIYA TUGMASI 
-# =========================================================
-OFFICE_LAT = 41.315083
-OFFICE_LON = 69.155194
 
-@router.callback_query(F.data == "contact_action_location")
-async def send_location_map(call: CallbackQuery):
-    await call.message.answer_location(
-        latitude=OFFICE_LAT,
-        longitude=OFFICE_LON
-    )
-    await call.answer()
 
 
 # =========================================================
